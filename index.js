@@ -1,90 +1,57 @@
-function cargarDatos() {
-    const url = 'https://rickandmortyapi.com/api/character';
+// Function to fetch artworks by artist ID
+function fetchArtworksByArtist(artist_id) {
+    const artworks_base_url = "https://api.artic.edu/api/v1/artworks";
+    const artworks_query_params = `?artist_ids=${artist_id}&limit=100`;
 
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error en la red - La respuesta no fue ok');
-            }
-            return response.json();
-        })
+    fetch(artworks_base_url + artworks_query_params)
+        .then(response => response.json())
         .then(data => {
-            console.log('Datos recibidos:', data);
+            const api_links = data.data.map(artwork => artwork.api_link);
+
+            return Promise.all(api_links.map(link => fetch(link).then(res => res.json())));
         })
-        .catch(error => {
-            console.error('Error capturado en .catch():', error);
-        });
+        .then(details => {
+            const paintings_info = details.map(detail_data => {
+                const data = detail_data.data;
+                const title = data.title;
+                const year = data.date_display;
+                const image_id = data.image_id;
+                const image_link = `https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`;
+
+                return { title, year, image_link };
+            });
+
+            displayPaintings(paintings_info);
+        })
+        .catch(error => console.error('Error fetching artworks:', error));
+
 }
 
-cargarDatos()
+// Function to display paintings in the gallery
+function displayPaintings(paintings) {
+    const gallery = document.getElementById('gallery');
 
-async function cargarDatosAsync() {
-    const url = 'https://jsonplaceholder.typicode.com/posts';
+    paintings.forEach(painting => {
+        const paintingElement = document.createElement('div');
+        paintingElement.classList.add('painting');
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Error en la red - La respuesta no fue ok');
-        }
-        const data = await response.json();
-        console.log('Datos recibidos:', data);
-    } catch (error) {
-        console.error('Error capturado en try-catch:', error);
-    }
-}
+        const img = document.createElement('img');
+        img.src = painting.image_link;
+        img.alt = painting.title;
 
-cargarDatosAsync()
+        const title = document.createElement('h2');
+        title.textContent = painting.title;
 
+        const year = document.createElement('p');
+        year.textContent = painting.year;
 
-let currentPage = 1;
+        paintingElement.appendChild(img);
+        paintingElement.appendChild(title);
+        paintingElement.appendChild(year);
 
-async function fetchCharacters() {
-    const url = `https://rickandmortyapi.com/api/character?page=${currentPage}`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        displayCharacters(data.results);
-        currentPage++;
-        adjustCardEffects(); // Asegura que los nuevos personajes tengan efectos
-    } catch (error) {
-        console.error("Error fetching characters:", error);
-    }
-}
-
-function displayCharacters(characters) {
-    const container = document.getElementById("characters");
-    characters.forEach((character) => {
-        const characterElement = document.createElement("div");
-        characterElement.className = "character";
-        characterElement.innerHTML = `
-            <img src="${character.image}" alt="${character.name}">
-            <h3>${character.name}</h3>
-            <p>Species: ${character.species}</p>
-            <p>Status: ${character.status}</p>
-        `;
-        container.appendChild(characterElement);
+        gallery.appendChild(paintingElement);
     });
 }
 
-function adjustCardEffects() {
-    document.querySelectorAll(".character").forEach((item) => {
-        item.addEventListener("mousemove", function (e) {
-            let rect = e.target.getBoundingClientRect();
-            let x = e.clientX - rect.left;
-            let y = e.clientY - rect.top;
-            let dx = (x / rect.width - 0.5) * 10; // Ángulo reducido para movimiento sutil
-            let dy = (y / rect.height - 0.5) * 10; // Ángulo reducido para movimiento sutil
-            item.style.transform = `rotateY(${dx}deg) rotateX(${-dy}deg)`;
-        });
-        item.addEventListener("mouseout", function () {
-            item.style.transform = "rotateY(0deg) rotateX(0deg)"; // Resetear la rotación
-        });
-    });
-}
-
-document.getElementById("loadMore").addEventListener("click", fetchCharacters);
-
-fetchCharacters();
+// Fetch and display artworks for Salvador Dali (artist ID: 34123)
+fetchArtworksByArtist(34123);

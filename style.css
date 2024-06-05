@@ -1,45 +1,36 @@
 body {
   font-family: Arial, sans-serif;
-  text-align: center;
-  margin: 20px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-
-#characters {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  perspective: 1000px; /* Opcional si deseas un poco de profundidad */
+#gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
 }
-
-.character {
-  width: 180px;
-  height: 300px;
-  margin: 10px;
-  padding: 10px;
+.painting {
   border: 1px solid #ccc;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: white;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s; /* Transición más rápida y suave */
-  transform-style: preserve-3d; /* Necesario para las transformaciones 3D */
-  transform: rotateY(0deg) rotateX(0deg); /* Estado inicial */
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f9f9f9;
+  transition: transform 0.2s;
 }
-
-.character:hover {
-  transform: rotateY(0deg) rotateX(0deg);
+.painting:hover {
+  transform: scale(1.05);
 }
-
-img {
+.painting img {
   width: 100%;
   height: auto;
-  border-radius: 10px;
-  backface-visibility: hidden;
+  display: block;
 }
-
-.character h3,
-.character p {
-  text-align: center;
-  margin: 5px 0;
+.painting h2 {
+  font-size: 1.2em;
+  margin: 10px;
+}
+.painting p {
+  font-size: 1em;
+  margin: 10px;
+  color: #555;
 }

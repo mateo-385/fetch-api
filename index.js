@@ -1,57 +1,93 @@
-// Function to fetch artworks by artist ID
-function fetchArtworksByArtist(artist_id) {
-    const artworks_base_url = "https://api.artic.edu/api/v1/artworks";
-    const artworks_query_params = `?artist_ids=${artist_id}&limit=100`;
-
-    fetch(artworks_base_url + artworks_query_params)
-        .then(response => response.json())
-        .then(data => {
-            const api_links = data.data.map(artwork => artwork.api_link);
-
-            return Promise.all(api_links.map(link => fetch(link).then(res => res.json())));
-        })
-        .then(details => {
-            const paintings_info = details.map(detail_data => {
-                const data = detail_data.data;
-                const title = data.title;
-                const year = data.date_display;
-                const image_id = data.image_id;
-                const image_link = `https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`;
-
-                return { title, year, image_link };
-            });
-
-            displayPaintings(paintings_info);
-        })
-        .catch(error => console.error('Error fetching artworks:', error));
-
+// Function to fetch JSON data from a given URL
+async function fetchJSON(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+  return response.json();
 }
 
-// Function to display paintings in the gallery
-function displayPaintings(paintings) {
-    const gallery = document.getElementById('gallery');
-
-    paintings.forEach(painting => {
-        const paintingElement = document.createElement('div');
-        paintingElement.classList.add('painting');
-
-        const img = document.createElement('img');
-        img.src = painting.image_link;
-        img.alt = painting.title;
-
-        const title = document.createElement('h2');
-        title.textContent = painting.title;
-
-        const year = document.createElement('p');
-        year.textContent = painting.year;
-
-        paintingElement.appendChild(img);
-        paintingElement.appendChild(title);
-        paintingElement.appendChild(year);
-
-        gallery.appendChild(paintingElement);
-    });
+// Function to search for artworks by a query
+async function searchArtworks(query) {
+  const searchUrl = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(
+    query
+  )}&limit=100`;
+  return fetchJSON(searchUrl);
 }
 
-// Fetch and display artworks for Salvador Dali (artist ID: 34123)
-fetchArtworksByArtist(34123);
+// Function to get artwork details by ID
+async function getArtworkDetails(artworkId) {
+  const artworkUrl = `https://api.artic.edu/api/v1/artworks/${artworkId}`;
+  return fetchJSON(artworkUrl);
+}
+
+// Function to create HTML for a painting and insert it into the gallery
+function insertPaintingIntoGallery(painting) {
+  const gallery = document.getElementById("gallery");
+
+  if (!gallery) {
+    console.error("Gallery element not found!");
+    return;
+  }
+
+  const paintingElement = document.createElement("div");
+  paintingElement.classList.add("painting");
+
+  const imgElement = document.createElement("img");
+  imgElement.src = painting.image_url;
+  imgElement.alt = painting.title;
+  imgElement.onerror = () => {
+    imgElement.src = "https://via.placeholder.com/250"; // Placeholder image if the image fails to load
+  };
+
+  const titleElement = document.createElement("h2");
+  titleElement.textContent = painting.title;
+
+  const descriptionElement = document.createElement("p");
+  descriptionElement.textContent = painting.artist_title;
+
+  paintingElement.appendChild(imgElement);
+  paintingElement.appendChild(titleElement);
+  paintingElement.appendChild(descriptionElement);
+
+  gallery.appendChild(paintingElement);
+
+  console.log("Inserted painting:", painting);
+}
+
+// Main function to get all artworks by Salvador Dalí and insert them into the gallery
+async function getArtworksBySalvadorDali() {
+  try {
+    // Step 1: Search for artworks by Salvador Dalí
+    const searchResults = await searchArtworks("Salvador Dali");
+    console.log("Search results:", searchResults);
+    if (searchResults.data.length === 0) {
+      console.log("No artworks found for Salvador Dalí");
+      return;
+    }
+
+    // Step 2: Iterate through each artwork and fetch its details
+    for (const artwork of searchResults.data) {
+      const artworkDetails = await getArtworkDetails(artwork.id);
+      console.log("Artwork details:", artworkDetails);
+
+      // Extract image_id and construct image URL
+      const image_id = artworkDetails.data.image_id;
+      const image_url = image_id
+        ? `https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`
+        : "https://via.placeholder.com/250";
+
+      // Insert the painting into the gallery
+      insertPaintingIntoGallery({
+        title: artworkDetails.data.title,
+        artist_title: artworkDetails.data.artist_title,
+        image_url: image_url,
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching artworks:", error);
+  }
+}
+
+// Execute the function after the DOM is fully loaded
+document.addEventListener("DOMContentLoaded", getArtworksBySalvadorDali);
